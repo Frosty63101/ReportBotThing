@@ -12,7 +12,7 @@ class ctx(commands.Cog):
         modRoleID = int(get_mod_role())
         modRole = interaction.guild.get_role(modRoleID)
         ReportChannelID = int(get_report_channel())
-        ReportChannel = ctx.guild.get_channel(ReportChannelID)
+        ReportChannel = interaction.guild.get_channel(ReportChannelID)
         reporter = interaction.user
         messageAuthor = message.author
         messageContent = message.content
@@ -32,7 +32,7 @@ class ctx(commands.Cog):
         modRoleID = int(get_mod_role())
         modRole = interaction.guild.get_role(modRoleID)
         ReportChannelID = int(get_report_channel())
-        ReportChannel = ctx.guild.get_channel(ReportChannelID)
+        ReportChannel = interaction.guild.get_channel(ReportChannelID)
         reporter = interaction.user
         messageAuthor = user
         messageContent = "User"
