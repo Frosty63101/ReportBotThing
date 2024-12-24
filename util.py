@@ -64,21 +64,25 @@ def get_admin_role():
     return role
 
 def get_report_title(reporter: discord.User, messageAuthor: discord.User, messageContent: str, messageChannel: discord.TextChannel, messageGuild: discord.Guild, messageID: int):
+    verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
     return reportFormats["title"].format(reporter=reporter, messageAuthor=messageAuthor, messageContent=messageContent, messageChannel=messageChannel, messageGuild=messageGuild, messageID=messageID)
 
 def get_report_description(reporter: discord.User, messageAuthor: discord.User, messageContent: str, messageChannel: discord.TextChannel, messageGuild: discord.Guild, messageID: int):
+    verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
     return reportFormats["description"].format(reporter=reporter, messageAuthor=messageAuthor, messageContent=messageContent, messageChannel=messageChannel, messageGuild=messageGuild, messageID=messageID)
 
 def get_reports_color():
+    verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
     return (reportFormats["color"]["r"], reportFormats["color"]["g"], reportFormats["color"]["b"])
 
 def edit_reports_title(title: str):
+    verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
     reportFormats["title"] = title
@@ -86,6 +90,7 @@ def edit_reports_title(title: str):
         json.dump(reportFormats, f, indent=4)
 
 def edit_reports_description(description: str):
+    verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
     reportFormats["description"] = description
@@ -93,6 +98,7 @@ def edit_reports_description(description: str):
         json.dump(reportFormats, f, indent=4)
 
 def edit_reports_color(r: int, g: int, b: int):
+    verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
     reportFormats["color"] = {"r": r, "g": g, "b": b}
