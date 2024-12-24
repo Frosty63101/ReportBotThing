@@ -10,7 +10,6 @@ import json
 envVars = {
     "TOKEN",
     "REPORT_CHANNEL_ID",
-    "Blocked_CHANNELS",
     "MOD_ROLE",
     "ADMIN_ROLE"
 }
