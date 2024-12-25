@@ -18,6 +18,7 @@ class Role(PyEnum):
     admin = "Admin"
     mod = "Moderator"
     owner = "Owner"
+    senior = "Senior Moderator"
 
 envLoaded = False
 
@@ -56,6 +57,11 @@ def get_report_channel():
 def get_mod_role():
     ensure_env_loaded()
     role = os.getenv('MOD_ROLE')
+    return role
+
+def get_senior_role():
+    ensure_env_loaded()
+    role = os.getenv('SENIOR_ROLE')
     return role
 
 def get_admin_role():
@@ -130,5 +136,7 @@ def has_role(role: Role):
             return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_admin_role()))
         if role == Role.mod:
             return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_mod_role()))
+        if role == Role.senior:
+            return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_senior_role()))
         return False
     return commands.check(predicate)
