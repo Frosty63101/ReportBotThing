@@ -1,3 +1,6 @@
+# I forgot that ctx menus don't work in cogs
+
+
 import discord
 from discord.ext import commands
 from discord import app_commands
