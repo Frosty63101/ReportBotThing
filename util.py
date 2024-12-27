@@ -1,5 +1,5 @@
-from email import message
 import os
+import time
 from dotenv import load_dotenv
 from enum import Enum as PyEnum
 from typing import Union
@@ -70,51 +70,90 @@ def get_admin_role():
     role = os.getenv('ADMIN_ROLE')
     return role
 
-def get_report_title(reporter: discord.User, messageAuthor: discord.User, messageContent: str, messageChannel: discord.TextChannel, messageGuild: discord.Guild, messageID: int):
-    verify_file("reports.json")
-    with open("reports.json", "r") as f:
-        reportFormats = json.load(f)
-    return reportFormats["title"].format(reporter=reporter, messageAuthor=messageAuthor, messageContent=messageContent, messageChannel=messageChannel, messageGuild=messageGuild, messageID=messageID)
-
-def get_report_description(
-    type: str,
+def get_report_title(
     reporter: discord.User,
-    messageAuthor: discord.User,
-    messageContent: str,
-    messageChannel: discord.TextChannel,
-    messageID: int,
-    messageLink: str,
+    message: discord.Message,
     user: discord.User,
-    userID: int,
     reason: str
 ):
     verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
-    if type == "message":
-        return reportFormats["description-message"].format(
+    if message:
+        return reportFormats["title-message"].format(
             reporter=reporter,
-            messageAuthor=messageAuthor,
-            messageContent=messageContent,
-            messageChannel=messageChannel.name if messageChannel else "Direct Message",
-            messageChannelMention=messageChannel.mention if messageChannel else "Direct Message",
-            messageID=messageID or "N/A",
-            messageLink=messageLink or "N/A",
-            userID=userID or "N/A",
-            user=user,
+            reporterMention=reporter.mention,
+            reporterID=reporter.id,
+            messageAuthor=message.author,
+            messageAuthorMention=message.author.mention,
+            messageContent=message.content,
+            messageChannel=message.channel,
+            messageGuild=message.guild,
+            messageID=message.id,
+            messageLink=message.jump_url,
+            channel=message.channel,
+            channelName=message.channel.name,
+            channelMention=message.channel.mention,
+            time=f"<t:{int(time.time())}:f>",
             reason=reason
         )
-    elif type == "user":
+    elif user:
+        return reportFormats["title-user"].format(
+            reporter=reporter,
+            reporterMention=reporter.mention,
+            reporterID=reporter.id,
+            userMention=user.mention,
+            userTag=user.discriminator,
+            userID=user.id,
+            userCreated=f"<t:{int(user.created_at.timestamp())}:f>",
+            time=f"<t:{int(time.time())}:f>",
+            reason=reason
+        )
+
+def get_report_description(
+    reporter: discord.User,
+    message: discord.Message,
+    user: discord.User,
+    reason: str
+):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    if (
+        message and message.guild and message.author and \
+        message.channel and message.content and message.id and \
+        message.jump_url and reason
+        ):
+        return reportFormats["description-message"].format(
+            reporter=reporter,
+            reporterMention=reporter.mention,
+            reporterID=reporter.id,
+            messageAuthor=message.author,
+            messageAuthorMention=message.author.mention,
+            messageContent=message.content,
+            messageChannel=message.channel,
+            messageGuild=message.guild,
+            messageID=message.id,
+            messageLink=message.jump_url,
+            channel=message.channel,
+            channelName=message.channel.name,
+            channelMention=message.channel.mention,
+            time=f"<t:{int(time.time())}:f>",
+            reason=reason
+        )
+    elif (
+        user and user.id and user.mention and user.discriminator and \
+        user.created_at and user.joined_at and reason
+        ):
         return reportFormats["description-user"].format(
             reporter=reporter,
-            messageAuthor=messageAuthor,
-            messageContent=messageContent,
-            messageChannel=messageChannel.name if messageChannel else "Direct Message",
-            messageChannelMention=messageChannel.mention if messageChannel else "Direct Message",
-            messageID=messageID or "N/A",
-            messageLink=messageLink or "N/A",
-            userID=userID or "N/A",
-            user=user,
+            reporterMention=reporter.mention,
+            reporterID=reporter.id,
+            userMention=user.mention,
+            userTag=user.discriminator,
+            userID=user.id,
+            userCreated=f"<t:{int(user.created_at.timestamp())}:f>",
+            time=f"<t:{int(time.time())}:f>",
             reason=reason
         )
 

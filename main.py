@@ -3,6 +3,7 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
+from matplotlib.artist import get
 from util import (
     get_token, get_report_channel, get_report_title,
     get_report_description, get_reports_color, 
@@ -69,18 +70,18 @@ class ReportView(discord.ui.View):
         self.status = "Pending"  # Default status
 
     async def update_embed(self, interaction: discord.Interaction, new_status: str):
-        self.status = new_status
 
         # Update the embed's description with the new status
         updated_description = self.embed.description.replace(
             f"**Status:** {self.status}", f"**Status:** {new_status}"
         )
+        self.status = new_status
         self.embed.description = updated_description
 
         # Update embed color based on status
-        if new_status == "Claimed":
+        if "Claimed" in new_status:
             rgb = get_reports_color("claimed_color")
-        elif new_status == "Resolved":
+        elif "Resolved" in new_status:
             rgb = get_reports_color("resolved_color")
         else:
             rgb = get_reports_color()
@@ -122,24 +123,29 @@ async def handle_report(
     reason_modal = ReportReasonModal(max_length=int(get_max_reason_length()))
     reason = await reason_modal.get_reason(interaction)
 
-    # Generate the title and truncate it if needed
-    raw_title = get_report_title(reporter, target.author, "", None, interaction.guild, None)
-    title = raw_title[:253] + "..." if len(raw_title) > 256 else raw_title
-
     if isinstance(target, discord.Message):
-        description = get_report_description("message", 
-            reporter, target.author, target.content, target.channel, target.id, target.jump_url, None, None, reason
-        ) + "\n\n**Status:** Pending"
+        description = get_report_description(reporter, target, None, reason)
+        title = get_report_title(reporter, target, None, reason)
     else:
-        description = get_report_description("user",
-            reporter, target, "", None, None, None, target.id, target, reason
-        ) + "\n\n**Status:** Pending"
+        description = get_report_description(reporter, None, target, reason)
+        title = get_report_title(reporter, None, target, reason)
+    
+    description = description.split("!!!")
+    
+    descriptionMatrix = []
+    for i in range(len(description)):
+        descriptionMatrix.append(description[i].split("???"))
 
     embed = discord.Embed(
         title=title,
-        description=description,
+        description="**Status:** Pending",
         color=embed_color
     )
+    
+    for i in range(len(descriptionMatrix)):
+        embed.add_field(name=descriptionMatrix[i][0].split("\n")[0], value=descriptionMatrix[i][0].split("\n")[1] if len(descriptionMatrix[i][0].split("\n")) == 2 else "", inline=(False if i > 0 else True))
+        for j in range(1, len(descriptionMatrix[i])):
+            embed.add_field(name=descriptionMatrix[i][j].split("\n")[0], value=descriptionMatrix[i][j].split("\n")[1] if len(descriptionMatrix[i][j].split("\n")) == 2 else "", inline=True)
 
     # Send the embed to the report channel
     try:
