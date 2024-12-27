@@ -8,7 +8,6 @@ from discord.ext import commands
 import json
 import string
 
-
 envVars = {
     "TOKEN",
     "REPORT_CHANNEL_ID",
@@ -222,6 +221,16 @@ def edit_reports_color(r: int, g: int, b: int):
     with open("reports.json", "w") as f:
         json.dump(reportFormats, f, indent=4)
 
+def update_reports_json(self, key: str, new_value: str):
+        """Helper function to update a specific key in reports.json."""
+        with open("reports.json", "r") as f:
+            report_formats = json.load(f)
+
+        report_formats[key] = new_value
+
+        with open("reports.json", "w") as f:
+            json.dump(report_formats, f, indent=4)
+
 def edit_env(key, value):
     ensure_env_loaded()
     with open(".env", "r") as f:
@@ -244,10 +253,10 @@ def has_role(role: Role):
         if role == Role.owner:
             return ctx.author.id == ctx.guild.owner_id
         if role == Role.admin:
-            return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_admin_role()))
-        if role == Role.mod:
-            return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_mod_role()))
+            return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_admin_role())) or ctx.author.id == ctx.guild.owner_id
         if role == Role.senior:
-            return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_senior_role()))
+            return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_senior_role())) or any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_admin_role())) or ctx.author.id == ctx.guild.owner_id
+        if role == Role.mod:
+            return any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_mod_role())) or any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_senior_role())) or any(role.id in [r.id for r in ctx.author.roles] for role in ctx.guild.roles if role.id == int(get_admin_role())) or ctx.author.id == ctx.guild.owner_id
         return False
     return commands.check(predicate)
