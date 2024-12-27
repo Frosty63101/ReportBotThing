@@ -1,17 +1,16 @@
-#main.py
 import asyncio
 import os
 import discord
 from discord.ext import commands
 from discord import app_commands
-from util import get_token
-from util import get_report_channel, get_report_title, get_report_description, get_reports_color, get_mod_role, get_max_reason_length
-
-
+from util import (
+    get_token, get_report_channel, get_report_title,
+    get_report_description, get_reports_color, 
+    get_mod_role, get_max_reason_length
+)
 
 bot = commands.AutoShardedBot(intents=discord.Intents.all(), command_prefix="!")
 
-# Load cogs
 async def load_cogs():
     for cog in os.listdir("cogs"):
         if cog.endswith(".py"):
@@ -21,13 +20,14 @@ async def load_cogs():
                 print(f"Loaded {cog} cog.")
             except Exception as e:
                 print(f"Failed to load {cog} cog: {e}")
+    
     bot.tree.add_command(report_message)
     bot.tree.add_command(report_user)
+    
     commandList = [command.name for command in bot.commands]
     commandList += [command.name for command in bot.tree.walk_commands()]
     commandList.sort()
-    commandString = "\n".join(commandList)
-    print(f"Registered commands:\n{commandString}")
+    print(f"Registered commands:\n{commandList}")
 
 @bot.event
 async def on_ready():
@@ -39,94 +39,125 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
-class reportReason(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.value = None
-    async def ask_reason(interaction: discord.Interaction) -> str:
-        """
-        Prompt the user to provide a reason for the report if they choose to.
-
-        Returns:
-            str: The reason provided by the user, or "No reason provided." if they skip.
-        """
-        modal = discord.ui.Modal(title="Add a Reason for the Report")
-
-        reason_input = discord.ui.TextInput(
+class ReportReasonModal(discord.ui.Modal):
+    def __init__(self, max_length: int):
+        super().__init__(title="Add a Reason for the Report")
+        self.reason = discord.ui.TextInput(
             label="Reason (Optional)",
             style=discord.TextStyle.long,
             placeholder="Provide a reason for this report...",
             required=False,
-            max_length=int(get_max_reason_length())
+            max_length=max_length
         )
+        self.add_item(self.reason)
 
-        modal.add_item(reason_input)
-
-        await interaction.response.send_modal(modal)
-
-        await modal.wait()  # Wait for the user to complete the modal
-
-        return reason_input.value or "No reason provided."
-    
-    def callback(self, interaction: discord.Interaction):
-        self.value = interaction.data["values"][0]
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         self.stop()
 
-@app_commands.context_menu(name="Report Message")
-@app_commands.allowed_installs(guilds=True)
-async def report_message(interaction: discord.Interaction, message: discord.Message):
-    modRoleID = int(get_mod_role())
-    modRole = interaction.guild.get_role(modRoleID)
-    ReportChannelID = int(get_report_channel())
-    ReportChannel = interaction.guild.get_channel(ReportChannelID)
-    reporter = interaction.user
-    messageAuthor = message.author
-    messageContent = message.content
-    messageChannel = message.channel
-    messageGuild = message.guild
-    messageID = message.id
-    rgb = get_reports_color()
+    async def get_reason(self, interaction: discord.Interaction) -> str:
+        """Show the modal and return the user's input."""
+        await interaction.response.send_modal(self)
+        await self.wait()  # Wait until the modal is submitted
+        return self.reason.value or "No reason provided."
 
-    # Ask the user for a reason
-    reason = await reportReason.ask_reason(interaction)
-    
-    print(discord.Color.from_rgb(int(rgb[0]), int(rgb[1]), int(rgb[2])))
+class ReportView(discord.ui.View):
+    def __init__(self, embed: discord.Embed, report_message: discord.Message):
+        super().__init__(timeout=None)
+        self.embed = embed
+        self.report_message = report_message
+        self.status = "Pending"  # Default status
+
+    async def update_embed(self, interaction: discord.Interaction, new_status: str):
+        self.status = new_status
+
+        # Update the embed's description with the new status
+        updated_description = self.embed.description.replace(
+            f"**Status:** {self.status}", f"**Status:** {new_status}"
+        )
+        self.embed.description = updated_description
+
+        # Update embed color based on status
+        if new_status == "Claimed":
+            rgb = get_reports_color("claimed_color")
+        elif new_status == "Resolved":
+            rgb = get_reports_color("resolved_color")
+        else:
+            rgb = get_reports_color()
+
+        self.embed.color = discord.Color.from_rgb(*rgb)
+
+        # Edit the message to update the embed
+        await self.report_message.edit(embed=self.embed, view=self)
+
+    @discord.ui.button(label="Claim", style=discord.ButtonStyle.primary)
+    async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.disabled = True  # Disable the button
+        await self.update_embed(interaction, f"Claimed by {interaction.user.mention}")
+        await interaction.response.edit_message(embed=self.embed, view=self)
+
+    @discord.ui.button(label="Resolve", style=discord.ButtonStyle.success)
+    async def resolve_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.disabled = True  # Disable the button
+        for child in self.children:
+            if isinstance(child, discord.ui.Button) and child.label == "Claim":
+                child.disabled = True  # Disable the claim button as well
+        await self.update_embed(interaction, f"Resolved by {interaction.user.mention}")
+        await interaction.response.edit_message(embed=self.embed, view=self)
+
+async def handle_report(
+    interaction: discord.Interaction,
+    target: discord.User | discord.Message,
+    report_type: str,
+):
+    mod_role_id = int(get_mod_role())
+    mod_role = interaction.guild.get_role(mod_role_id)
+    report_channel_id = int(get_report_channel())
+    report_channel = interaction.guild.get_channel(report_channel_id)
+
+    reporter = interaction.user
+    rgb = get_reports_color()
+    embed_color = discord.Color.from_rgb(*rgb)
+
+    reason_modal = ReportReasonModal(max_length=int(get_max_reason_length()))
+    reason = await reason_modal.get_reason(interaction)
+
+    # Generate the title and truncate it if needed
+    raw_title = get_report_title(reporter, target.author, "", None, interaction.guild, None)
+    title = raw_title[:253] + "..." if len(raw_title) > 256 else raw_title
+
+    if isinstance(target, discord.Message):
+        description = get_report_description("message", 
+            reporter, target.author, target.content, target.channel, target.id, target.jump_url, None, None, reason
+        ) + "\n\n**Status:** Pending"
+    else:
+        description = get_report_description("user",
+            reporter, target, "", None, None, None, target.id, target, reason
+        ) + "\n\n**Status:** Pending"
 
     embed = discord.Embed(
-        title=get_report_title(reporter, messageAuthor, messageContent, messageChannel, messageGuild, messageID),
-        description=f"{get_report_description(reporter, messageAuthor, messageContent, messageChannel, messageGuild, messageID)}\n\n**Reason:** {reason}",
-        color=discord.Color.from_rgb(int(rgb[0]), int(rgb[1]), int(rgb[2]))
+        title=title,
+        description=description,
+        color=embed_color
     )
 
-    await ReportChannel.send(f"{modRole.mention}", embed=embed)
+    # Send the embed to the report channel
+    try:
+        report_message = await report_channel.send(content=mod_role.mention, embed=embed)
+        view = ReportView(embed=embed, report_message=report_message)
+        await report_message.edit(view=view)
+    except discord.HTTPException as e:
+        await interaction.response.send_message(
+            f"Failed to send the report due to an error: {e}", ephemeral=True
+        )
+
+@app_commands.context_menu(name="Report Message")
+async def report_message(interaction: discord.Interaction, message: discord.Message):
+    await handle_report(interaction, message, "message")
 
 @app_commands.context_menu(name="Report User")
-@app_commands.allowed_installs(guilds=True)
 async def report_user(interaction: discord.Interaction, user: discord.User):
-    modRoleID = int(get_mod_role())
-    modRole = interaction.guild.get_role(modRoleID)
-    ReportChannelID = int(get_report_channel())
-    ReportChannel = interaction.guild.get_channel(ReportChannelID)
-    reporter = interaction.user
-    messageAuthor = user
-    messageContent = "User"
-    messageChannel = None
-    messageGuild = interaction.guild
-    messageID = None
-    rgb = get_reports_color()
-
-    # Ask the user for a reason
-    reason = await reportReason.ask_reason(interaction)
-    
-    print(discord.Color.from_rgb(int(rgb[0]), int(rgb[1]), int(rgb[2])))
-
-    embed = discord.Embed(
-        title=get_report_title(reporter, messageAuthor, messageContent, messageChannel, messageGuild, messageID),
-        description=f"{get_report_description(reporter, messageAuthor, messageContent, messageChannel, messageGuild, messageID)}\n\n**Reason:** {reason}",
-        color=discord.Color.from_rgb(int(rgb[0]), int(rgb[1]), int(rgb[2]))
-    )
-
-    await ReportChannel.send(f"{modRole.mention}", embed=embed)
+    await handle_report(interaction, user, "user")
 
 if __name__ == "__main__":
     token = get_token()

@@ -1,3 +1,4 @@
+from email import message
 import os
 from dotenv import load_dotenv
 from enum import Enum as PyEnum
@@ -75,11 +76,47 @@ def get_report_title(reporter: discord.User, messageAuthor: discord.User, messag
         reportFormats = json.load(f)
     return reportFormats["title"].format(reporter=reporter, messageAuthor=messageAuthor, messageContent=messageContent, messageChannel=messageChannel, messageGuild=messageGuild, messageID=messageID)
 
-def get_report_description(reporter: discord.User, messageAuthor: discord.User, messageContent: str, messageChannel: discord.TextChannel, messageGuild: discord.Guild, messageID: int):
+def get_report_description(
+    type: str,
+    reporter: discord.User,
+    messageAuthor: discord.User,
+    messageContent: str,
+    messageChannel: discord.TextChannel,
+    messageID: int,
+    messageLink: str,
+    user: discord.User,
+    userID: int,
+    reason: str
+):
     verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
-    return reportFormats["description"].format(reporter=reporter, messageAuthor=messageAuthor, messageContent=messageContent, messageChannel=messageChannel, messageGuild=messageGuild, messageID=messageID)
+    if type == "message":
+        return reportFormats["description-message"].format(
+            reporter=reporter,
+            messageAuthor=messageAuthor,
+            messageContent=messageContent,
+            messageChannel=messageChannel.name if messageChannel else "Direct Message",
+            messageChannelMention=messageChannel.mention if messageChannel else "Direct Message",
+            messageID=messageID or "N/A",
+            messageLink=messageLink or "N/A",
+            userID=userID or "N/A",
+            user=user,
+            reason=reason
+        )
+    elif type == "user":
+        return reportFormats["description-user"].format(
+            reporter=reporter,
+            messageAuthor=messageAuthor,
+            messageContent=messageContent,
+            messageChannel=messageChannel.name if messageChannel else "Direct Message",
+            messageChannelMention=messageChannel.mention if messageChannel else "Direct Message",
+            messageID=messageID or "N/A",
+            messageLink=messageLink or "N/A",
+            userID=userID or "N/A",
+            user=user,
+            reason=reason
+        )
 
 def get_reports_color():
     verify_file("reports.json")
@@ -92,6 +129,13 @@ def get_max_reason_length():
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
     return reportFormats["max_reason_length"]
+
+def get_reports_color(color_key: str = "color"):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        report_formats = json.load(f)
+    color = report_formats.get(color_key, report_formats["color"])
+    return (color["r"], color["g"], color["b"])
 
 def edit_reports_title(title: str):
     verify_file("reports.json")
