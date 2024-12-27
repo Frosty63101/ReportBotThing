@@ -6,6 +6,7 @@ from typing import Union
 import discord
 from discord.ext import commands
 import json
+import string
 
 
 envVars = {
@@ -14,6 +15,12 @@ envVars = {
     "MOD_ROLE",
     "ADMIN_ROLE"
 }
+
+class SafeFormatter(string.Formatter):
+    def get_value(self, key, args, kwargs):
+        if isinstance(key, str):
+            return kwargs.get(key, "{" + key + "}")
+        return super().get_value(key, args, kwargs)
 
 class Role(PyEnum):
     admin = "Admin"
@@ -80,36 +87,42 @@ def get_report_title(
     verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
+    
+    formatter = SafeFormatter()
+
     if message:
-        return reportFormats["title-message"].format(
-            reporter=reporter,
-            reporterMention=reporter.mention,
-            reporterID=reporter.id,
-            messageAuthor=message.author,
-            messageAuthorMention=message.author.mention,
-            messageContent=message.content,
-            messageChannel=message.channel,
-            messageGuild=message.guild,
-            messageID=message.id,
-            messageLink=message.jump_url,
-            channel=message.channel,
-            channelName=message.channel.name,
-            channelMention=message.channel.mention,
-            time=f"<t:{int(time.time())}:f>",
-            reason=reason
-        )
+        context = {
+            "reporter": reporter,
+            "reporterMention": reporter.mention,
+            "reporterID": reporter.id,
+            "messageAuthor": message.author,
+            "messageAuthorMention": message.author.mention,
+            "messageContent": message.content,
+            "messageChannel": message.channel,
+            "messageGuild": message.guild,
+            "messageID": message.id,
+            "messageLink": message.jump_url,
+            "channel": message.channel,
+            "channelName": message.channel.name,
+            "channelMention": message.channel.mention,
+            "time": f"<t:{int(time.time())}:f>",
+            "reason": reason,
+        }
+        return formatter.format(reportFormats["title-message"], **context)
+    
     elif user:
-        return reportFormats["title-user"].format(
-            reporter=reporter,
-            reporterMention=reporter.mention,
-            reporterID=reporter.id,
-            userMention=user.mention,
-            userTag=user.discriminator,
-            userID=user.id,
-            userCreated=f"<t:{int(user.created_at.timestamp())}:f>",
-            time=f"<t:{int(time.time())}:f>",
-            reason=reason
-        )
+        context = {
+            "reporter": reporter,
+            "reporterMention": reporter.mention,
+            "reporterID": reporter.id,
+            "userMention": user.mention,
+            "userTag": user.discriminator,
+            "userID": user.id,
+            "userCreated": f"<t:{int(user.created_at.timestamp())}:f>",
+            "time": f"<t:{int(time.time())}:f>",
+            "reason": reason,
+        }
+        return formatter.format(reportFormats["title-user"], **context)
 
 def get_report_description(
     reporter: discord.User,
@@ -120,43 +133,51 @@ def get_report_description(
     verify_file("reports.json")
     with open("reports.json", "r") as f:
         reportFormats = json.load(f)
+    
+    formatter = SafeFormatter()
+
     if (
         message and message.guild and message.author and \
         message.channel and message.content and message.id and \
         message.jump_url and reason
-        ):
-        return reportFormats["description-message"].format(
-            reporter=reporter,
-            reporterMention=reporter.mention,
-            reporterID=reporter.id,
-            messageAuthor=message.author,
-            messageAuthorMention=message.author.mention,
-            messageContent=message.content,
-            messageChannel=message.channel,
-            messageGuild=message.guild,
-            messageID=message.id,
-            messageLink=message.jump_url,
-            channel=message.channel,
-            channelName=message.channel.name,
-            channelMention=message.channel.mention,
-            time=f"<t:{int(time.time())}:f>",
-            reason=reason
-        )
+    ):
+        context = {
+            "reporter": reporter,
+            "reporterMention": reporter.mention,
+            "reporterID": reporter.id,
+            "messageAuthor": message.author,
+            "messageAuthorMention": message.author.mention,
+            "messageContent": message.content,
+            "messageChannel": message.channel,
+            "messageGuild": message.guild,
+            "messageID": message.id,
+            "messageLink": message.jump_url,
+            "channel": message.channel,
+            "channelName": message.channel.name,
+            "channelMention": message.channel.mention,
+            "time": f"<t:{int(time.time())}:f>",
+            "reason": reason,
+        }
+        return formatter.format(reportFormats["description-message"], **context)
+    
     elif (
         user and user.id and user.mention and user.discriminator and \
         user.created_at and user.joined_at and reason
-        ):
-        return reportFormats["description-user"].format(
-            reporter=reporter,
-            reporterMention=reporter.mention,
-            reporterID=reporter.id,
-            userMention=user.mention,
-            userTag=user.discriminator,
-            userID=user.id,
-            userCreated=f"<t:{int(user.created_at.timestamp())}:f>",
-            time=f"<t:{int(time.time())}:f>",
-            reason=reason
-        )
+    ):
+        context = {
+            "reporter": reporter,
+            "reporterMention": reporter.mention,
+            "reporterID": reporter.id,
+            "userMention": user.mention,
+            "userTag": user.discriminator,
+            "userID": user.id,
+            "userCreated": f"<t:{int(user.created_at.timestamp())}:f>",
+            "time": f"<t:{int(time.time())}:f>",
+            "reason": reason,
+        }
+        return formatter.format(reportFormats["description-user"], **context)
+
+
 
 def get_reports_color():
     verify_file("reports.json")
