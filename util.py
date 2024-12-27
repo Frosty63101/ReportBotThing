@@ -27,7 +27,8 @@ def verify_file(filePath):
     if not os.path.exists(filePath):
         with open(filePath, "w") as f:
             if filePath == "reports.json":
-                f.write('{"title": "Report by {reporter} on {messageAuthor}", \n"description": "Message: {messageContent}\nChannel: {messageChannel}\nGuild: {messageGuild}\nMessage ID: {messageID}",\n "color": {\n"r": 255, \n"g": 0, \n"b": 0\n},\n "max_reason_length": 300}')
+                with open("reports.json.example", "r") as e:
+                    f.write(e.read())
             elif filePath == ".env":
                 with open(".env.example", "r") as e:
                     f.write(e.read())

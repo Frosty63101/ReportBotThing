@@ -1,0 +1,22 @@
+{
+    "title-message": "Message Report from #{channelName}",
+    "title-user": "User Report",
+    "description-message": "Channel:\n{channelMention}???Reported by:\n{reporterMention}???Message Author:\n{messageAuthorMention}!!!Message:\n{messageContent}!!!Direct Link:\n{messageLink}!!!Reported at - {time}",
+    "description-user": "User: {user} ({userID})\n\n**Reason:** {reason}",
+    "color": {
+        "r": 255,
+        "g": 0,
+        "b": 0
+    },
+    "claimed_color": {
+        "r": 255,
+        "g": 165,
+        "b": 0
+    },
+    "resolved_color": {
+        "r": 0,
+        "g": 255,
+        "b": 0
+    },
+    "max_reason_length": 300
+}
