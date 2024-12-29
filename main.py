@@ -85,55 +85,96 @@ class modActionModal(discord.ui.Modal):
 
 class ReportView(discord.ui.View):
     def __init__(self, embed: discord.Embed, report_message: discord.Message):
-        super().__init__(timeout=None)
+        # 172800 seconds = 48 hours
+        super().__init__(timeout=172800)
+        
+        # Save the embed and the original report message so we can edit later
         self.embed = embed
-        self.report_message = report_message
-        self.status = "Pending"  # Default status
+        self.reportMessage = report_message
+        
+        # Store the status so it can be updated as buttons are pressed
+        self.status = "Pending"
+    
+    async def on_timeout(self):
+        """
+        This is automatically called when the view's timeout is reached (after 48 hours).
+        Here, you can disable the buttons or modify the embed/message as needed.
+        """
+        # Disable all buttons
+        for child in self.children:
+            if isinstance(child, discord.ui.Button):
+                child.disabled = True
 
-    async def update_embed(self, interaction: discord.Interaction, new_status: str):
-
-        # Update the embed's description with the new status
-        updated_description = self.embed.description.replace(
-            f"**Status:** {self.status}", f"**Status:** {new_status}"
+        # Optionally, edit the message to indicate it timed out
+        await self.reportMessage.edit(
+            content="This report is no longer active (timed out).",
+            view=self
         )
-        self.status = new_status
-        self.embed.description = updated_description
-
-        # Update embed color based on status
-        if "Claimed" in new_status:
+    
+    async def update_embed(self, interaction: discord.Interaction, newStatus: str):
+        """
+        Updates the embed description with the latest status and changes the color.
+        """
+        # Replace the status text
+        updatedDescription = self.embed.description.replace(
+            f"**Status:** {self.status}",
+            f"**Status:** {newStatus}"
+        )
+        self.status = newStatus
+        self.embed.description = updatedDescription
+        
+        # (Example) set color based on status
+        if "Claimed" in newStatus:
             rgb = get_reports_color("claimed_color")
-        elif "Resolved" in new_status:
+        elif "Resolved" in newStatus:
             rgb = get_reports_color("resolved_color")
         else:
             rgb = get_reports_color()
-
         self.embed.color = discord.Color.from_rgb(*rgb)
-
-        # Edit the message to update the embed
-        await self.report_message.edit(embed=self.embed, view=self)
-
+        
+        # Apply updates by editing the message
+        await self.reportMessage.edit(embed=self.embed, view=self)
+    
     @discord.ui.button(label="Claim", style=discord.ButtonStyle.primary)
-    async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        button.disabled = True  # Disable the button
-        await self.update_embed(interaction, f"Claimed by {interaction.user.mention}")
-        await interaction.response.edit_message(embed=self.embed, view=self)
-
-    @discord.ui.button(label="Resolve", style=discord.ButtonStyle.success)
-    async def resolve_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-
-        # Disable the resolve button and the claim button if it's not already disabled
+    async def claimButton(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Marks this report as claimed by whoever pressed the button.
+        Disables the 'Claim' button to prevent it from being pressed again.
+        """
+        # Disable this button
         button.disabled = True
+        # Update the embed to reflect the claimed status
+        await self.update_embed(interaction, f"Claimed by {interaction.user.mention}")
+        # Edit the message to apply the updated view
+        await interaction.response.edit_message(embed=self.embed, view=self)
+    
+    @discord.ui.button(label="Resolve", style=discord.ButtonStyle.success)
+    async def resolveButton(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Prompts the moderator to provide an action/summary, then marks this report
+        as resolved and disables the buttons.
+        """
+        # Disable the 'Resolve' button
+        button.disabled = True
+        
+        # Also disable the 'Claim' button if it isn't already
         for child in self.children:
             if isinstance(child, discord.ui.Button) and child.label == "Claim":
                 child.disabled = True
-
-        # Prompt the user for the moderation action
+        
+        # Ask for moderator action via the modal
         modAction = modActionModal()
         action = await modAction.get_action(interaction)
+        
+        # Update the embed with the resolution status
+        await self.update_embed(
+            interaction,
+            f"Resolved by {interaction.user.mention} \nwith action: {action}"
+        )
+        
+        # Edit the message with the final state
+        await self.reportMessage.edit(embed=self.embed, view=self)
 
-        # Update the embed and message with the moderation action
-        await self.update_embed(interaction, f"Resolved by {interaction.user.mention} \nwith action: {action}")
-        await self.report_message.edit(embed=self.embed, view=self)
 
 async def handle_report(
     interaction: discord.Interaction,
