@@ -62,6 +62,27 @@ class ReportReasonModal(discord.ui.Modal):
         await self.wait()  # Wait until the modal is submitted
         return self.reason.value or "No reason provided."
 
+class modActionModal(discord.ui.Modal):
+    def __init__(self):
+        super().__init__(title="Add a summary of the moderation action taken")
+        self.action = discord.ui.TextInput(
+            label="Mod action (Optional)",
+            style=discord.TextStyle.long,
+            placeholder="Provide a summary of moderation action taken if needed...",
+            required=False
+        )
+        self.add_item(self.action)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.stop()
+
+    async def get_action(self, interaction: discord.Interaction) -> str:
+        """Show the modal and return the user's input."""
+        await interaction.response.send_modal(self)
+        await self.wait()  # Wait until the modal is submitted
+        return self.action.value or "No action provided."
+
 class ReportView(discord.ui.View):
     def __init__(self, embed: discord.Embed, report_message: discord.Message):
         super().__init__(timeout=None)
@@ -99,12 +120,20 @@ class ReportView(discord.ui.View):
 
     @discord.ui.button(label="Resolve", style=discord.ButtonStyle.success)
     async def resolve_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        button.disabled = True  # Disable the button
+
+        # Disable the resolve button and the claim button if it's not already disabled
+        button.disabled = True
         for child in self.children:
             if isinstance(child, discord.ui.Button) and child.label == "Claim":
-                child.disabled = True  # Disable the claim button as well
-        await self.update_embed(interaction, f"Resolved by {interaction.user.mention}")
-        await interaction.response.edit_message(embed=self.embed, view=self)
+                child.disabled = True
+
+        # Prompt the user for the moderation action
+        modAction = modActionModal()
+        action = await modAction.get_action(interaction)
+
+        # Update the embed and message with the moderation action
+        await self.update_embed(interaction, f"Resolved by {interaction.user.mention} \nwith action: {action}")
+        await self.report_message.edit(embed=self.embed, view=self)
 
 async def handle_report(
     interaction: discord.Interaction,
