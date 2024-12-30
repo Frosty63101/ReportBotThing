@@ -3,7 +3,10 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
-from matplotlib.artist import get
+import time
+
+from flask import session
+from models import get_claim_button_id, get_resolve_button_id, get_edit_reason_button_id, get_report_by_id, get_report_by_message_id, get_report_by_user_id, get_session, reports
 from util import (
     get_token, get_report_channel, get_report_title,
     get_report_description, get_reports_color, 
@@ -39,6 +42,23 @@ async def on_ready():
         print(f"Synced {len(synced)} commands globally.")
     except Exception as e:
         print(f"Failed to sync commands: {e}")
+    
+    check_active()
+    # load past views that are active
+    session = get_session()
+    active_reports = session.query(reports).filter_by(active=True).all()
+    for report in active_reports:
+        if report.embed_message_id:
+            try:
+                report_channel_id = int(get_report_channel())
+                report_channel = bot.get_channel(report_channel_id)
+                report_message = await report_channel.fetch_message(report.embed_message_id)
+                embed = report_message.embeds[0]
+                view = ReportView(embed=embed, report_message=report_message, reportObject=report)
+                await report_message.edit(view=view)
+            except discord.HTTPException as e:
+                print(f"Failed to load active report: {e}")
+    session.close()
 
 class ReportReasonModal(discord.ui.Modal):
     def __init__(self, max_length: int):
@@ -84,44 +104,48 @@ class modActionModal(discord.ui.Modal):
         return self.action.value or "No action provided."
 
 class ReportView(discord.ui.View):
-    def __init__(self, embed: discord.Embed, report_message: discord.Message):
-        # 172800 seconds = 48 hours
-        super().__init__(timeout=172800)
+    def __init__(self, embed: discord.Embed, report_message: discord.Message, reportObject: reports):
+        super().__init__()
         
         # Save the embed and the original report message so we can edit later
         self.embed = embed
         self.reportMessage = report_message
+        self.reportObject = reportObject
         
         # Store the status so it can be updated as buttons are pressed
-        self.status = "Pending"
-    
-    async def on_timeout(self):
-        """
-        This is automatically called when the view's timeout is reached (after 48 hours).
-        Here, you can disable the buttons or modify the embed/message as needed.
-        """
-        # Disable all buttons
-        for child in self.children:
-            if isinstance(child, discord.ui.Button):
-                child.disabled = True
-
-        # Optionally, edit the message to indicate it timed out
-        await self.reportMessage.edit(
-            content="This report is no longer active (timed out).",
-            view=self
-        )
+        self.status = reportObject.status
+        
+        self.claimButton.custom_id = get_claim_button_id(self.reportObject.id)
+        self.resolveButton.custom_id = get_resolve_button_id(self.reportObject.id)
+        
+        session = get_session()
+        self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
+        session.close()
+        if not self.reportObject.claim_button_active:
+            self.claimButton.disabled = True
+        if not self.reportObject.resolve_button_active:
+            self.resolveButton.disabled = True
+        
     
     async def update_embed(self, interaction: discord.Interaction, newStatus: str):
         """
         Updates the embed description with the latest status and changes the color.
         """
         # Replace the status text
+        print("updating embed")
         updatedDescription = self.embed.description.replace(
             f"**Status:** {self.status}",
             f"**Status:** {newStatus}"
         )
         self.status = newStatus
         self.embed.description = updatedDescription
+        
+        session = get_session()
+        self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
+        self.reportObject.status = newStatus
+        self.reportObject.last_updated = time.time()
+        session.commit()
+        session.close()
         
         # (Example) set color based on status
         if "Claimed" in newStatus:
@@ -141,8 +165,16 @@ class ReportView(discord.ui.View):
         Marks this report as claimed by whoever pressed the button.
         Disables the 'Claim' button to prevent it from being pressed again.
         """
+        check_active()
         # Disable this button
         button.disabled = True
+        session = get_session()
+        self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
+        self.reportObject.claimer_id = interaction.user.id
+        self.reportObject.last_updated = time.time()
+        self.reportObject.claim_button_active = False
+        session.commit()
+        session.close()
         # Update the embed to reflect the claimed status
         await self.update_embed(interaction, f"Claimed by {interaction.user.mention}")
         # Edit the message to apply the updated view
@@ -154,17 +186,36 @@ class ReportView(discord.ui.View):
         Prompts the moderator to provide an action/summary, then marks this report
         as resolved and disables the buttons.
         """
+        check_active()
         # Disable the 'Resolve' button
         button.disabled = True
+        session = get_session()
+        self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
+        self.reportObject.resolve_button_active = False
+        session.commit()
         
         # Also disable the 'Claim' button if it isn't already
         for child in self.children:
             if isinstance(child, discord.ui.Button) and child.label == "Claim":
                 child.disabled = True
+                session = get_session()
+                self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
+                self.reportObject.claim_button_active = False
+                session.commit()
         
         # Ask for moderator action via the modal
         modAction = modActionModal()
         action = await modAction.get_action(interaction)
+        
+        session = get_session()
+        self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
+        self.reportObject.status = action
+        self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
+        self.reportObject.resolver_id = interaction.user.id
+        self.reportObject.last_updated = time.time()
+        self.reportObject.status = "Resolved"
+        session.commit()
+        session.close()
         
         # Update the embed with the resolution status
         await self.update_embed(
@@ -217,22 +268,60 @@ async def handle_report(
         for j in range(1, len(descriptionMatrix[i])):
             embed.add_field(name=descriptionMatrix[i][j].split("\n")[0], value=descriptionMatrix[i][j].split("\n")[1] if len(descriptionMatrix[i][j].split("\n")) == 2 else "", inline=True)
 
+    session = get_session()
+    reportObject = reports(
+        report_type=report_type,
+        message_id=target.id if isinstance(target, discord.Message) else None,
+        user_id=target.id if isinstance(target, discord.User) else None,
+        reason=reason,
+        status="Pending",
+        claim_button_id=None,
+        resolve_button_id=None,
+        edit_reason_button_id=None,
+        claimer_id=None,
+        resolver_id=None,
+        reporter_id=reporter.id,
+        embed_message_id=None,
+        last_updated=time.time()
+    )
+    session.add(reportObject)
+    session.flush()
+    reportObject.claim_button_id = get_claim_button_id(int(reportObject.id))
+    reportObject.resolve_button_id = get_resolve_button_id(int(reportObject.id))
+    reportObject.edit_reason_button_id = get_edit_reason_button_id(int(reportObject.id))
+    session.commit()
+
     # Send the embed to the report channel
     try:
         report_message = await report_channel.send(content=mod_role.mention, embed=embed)
-        view = ReportView(embed=embed, report_message=report_message)
+        reportObject.embed_message_id = str(report_message.id)
+        session.commit()
+        view = ReportView(embed=embed, report_message=report_message, reportObject=reportObject)
         await report_message.edit(view=view)
     except discord.HTTPException as e:
         await interaction.response.send_message(
             f"Failed to send the report due to an error: {e}", ephemeral=True
         )
+    session.close()
+
+def check_active():
+    session = get_session()
+    active_reports = session.query(reports).filter_by(active=True).all()
+    curent_time = time.time()
+    for report in active_reports:
+        if report.last_updated + 172800 < curent_time:
+            report.active = False
+            session.commit()
+    session.close()
 
 @app_commands.context_menu(name="Report Message")
 async def report_message(interaction: discord.Interaction, message: discord.Message):
+    check_active()
     await handle_report(interaction, message, "message")
 
 @app_commands.context_menu(name="Report User")
 async def report_user(interaction: discord.Interaction, user: discord.User):
+    check_active()
     await handle_report(interaction, user, "user")
 
 if __name__ == "__main__":
