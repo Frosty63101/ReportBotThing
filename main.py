@@ -1,11 +1,8 @@
-import asyncio
 import os
 import discord
 from discord.ext import commands
 from discord import app_commands
 import time
-
-from flask import session
 from models import get_claim_button_id, get_resolve_button_id, get_edit_reason_button_id, get_report_by_id, get_report_by_message_id, get_report_by_user_id, get_session, reports
 from util import (
     get_token, get_report_channel, get_report_title,
