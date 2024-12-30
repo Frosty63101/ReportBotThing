@@ -58,7 +58,6 @@ async def on_ready():
                 await report_message.edit(view=view)
             except discord.HTTPException as e:
                 print(f"Failed to load active report: {e}")
-    session.close()
 
 class ReportReasonModal(discord.ui.Modal):
     def __init__(self, max_length: int):
@@ -120,7 +119,7 @@ class ReportView(discord.ui.View):
         
         session = get_session()
         self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
-        session.close()
+        
         if not self.reportObject.claim_button_active:
             self.claimButton.disabled = True
         if not self.reportObject.resolve_button_active:
@@ -145,7 +144,6 @@ class ReportView(discord.ui.View):
         self.reportObject.status = newStatus
         self.reportObject.last_updated = time.time()
         session.commit()
-        session.close()
         
         # (Example) set color based on status
         if "Claimed" in newStatus:
@@ -174,7 +172,7 @@ class ReportView(discord.ui.View):
         self.reportObject.last_updated = time.time()
         self.reportObject.claim_button_active = False
         session.commit()
-        session.close()
+        
         # Update the embed to reflect the claimed status
         await self.update_embed(interaction, f"Claimed by {interaction.user.mention}")
         # Edit the message to apply the updated view
@@ -215,7 +213,6 @@ class ReportView(discord.ui.View):
         self.reportObject.last_updated = time.time()
         self.reportObject.status = "Resolved"
         session.commit()
-        session.close()
         
         # Update the embed with the resolution status
         await self.update_embed(
@@ -302,7 +299,6 @@ async def handle_report(
         await interaction.response.send_message(
             f"Failed to send the report due to an error: {e}", ephemeral=True
         )
-    session.close()
 
 def check_active():
     session = get_session()
@@ -312,7 +308,6 @@ def check_active():
         if report.last_updated + 172800 < curent_time:
             report.active = False
             session.commit()
-    session.close()
 
 @app_commands.context_menu(name="Report Message")
 async def report_message(interaction: discord.Interaction, message: discord.Message):
