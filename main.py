@@ -1,7 +1,9 @@
 import os
+import asyncio
 import discord
 from discord.ext import commands
 from discord import app_commands
+from discord.ext import tasks
 import time
 from models import get_claim_button_id, get_resolve_button_id, get_edit_reason_button_id, get_report_by_id, get_report_by_message_id, get_report_by_user_id, get_session, reports
 from util import (
@@ -40,11 +42,14 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
     
-    check_active()
-    # load past views that are active
+    # Load active views concurrently
     session = get_session()
     active_reports = session.query(reports).filter_by(active=True).all()
-    for report in active_reports:
+
+    if not check_active_reports.is_running():
+        check_active_reports.start()
+    
+    async def load_report_view(report):
         if report.embed_message_id:
             try:
                 report_channel_id = int(get_report_channel())
@@ -54,7 +59,13 @@ async def on_ready():
                 view = ReportView(embed=embed, report_message=report_message, reportObject=report)
                 await report_message.edit(view=view)
             except discord.HTTPException as e:
-                print(f"Failed to load active report: {e}")
+                print(f"Failed to load active report (ID {report.id}): {e}")
+
+    # Execute tasks concurrently
+    tasks = [load_report_view(report) for report in active_reports]
+    await asyncio.gather(*tasks)
+
+    print("Loaded all active report views.")
 
 class ReportReasonModal(discord.ui.Modal):
     def __init__(self, max_length: int):
@@ -160,7 +171,6 @@ class ReportView(discord.ui.View):
         Marks this report as claimed by whoever pressed the button.
         Disables the 'Claim' button to prevent it from being pressed again.
         """
-        check_active()
         # Disable this button
         button.disabled = True
         session = get_session()
@@ -181,7 +191,6 @@ class ReportView(discord.ui.View):
         Prompts the moderator to provide an action/summary, then marks this report
         as resolved and disables the buttons.
         """
-        check_active()
         # Disable the 'Resolve' button
         button.disabled = True
         session = get_session()
@@ -297,23 +306,51 @@ async def handle_report(
             f"Failed to send the report due to an error: {e}", ephemeral=True
         )
 
-def check_active():
+@tasks.loop(seconds=3600)  # Runs every hour (adjust as needed)
+async def check_active_reports():
+    await check_active() 
+
+@check_active_reports.before_loop
+async def before_check_active_reports():
+    await bot.wait_until_ready() 
+
+async def check_active():
     session = get_session()
     active_reports = session.query(reports).filter_by(active=True).all()
-    curent_time = time.time()
+    current_time = time.time()
+    report_channel_id = int(get_report_channel())
+    report_channel = bot.get_channel(report_channel_id)
+
     for report in active_reports:
-        if report.last_updated + 172800 < curent_time:
+        if report.last_updated + 172800 < current_time:
             report.active = False
-            session.commit()
+            report.claim_button_active = False
+            report.resolve_button_active = False
+            report.edit_reason_button_active = False
+
+            # Fetch the report message
+            if report.embed_message_id:
+                report_message_id = int(report.embed_message_id)
+                report_message = await report_channel.fetch_message(report_message_id)
+
+                # Create a new view and disable buttons
+                view = ReportView(embed=report_message.embeds[0], report_message=report_message, reportObject=report)
+                for child in view.children:
+                    if isinstance(child, discord.ui.Button):
+                        child.disabled = True
+
+                # Commit changes to the database
+                session.commit()
+
+                # Edit the message with the updated view
+                await report_message.edit(embed=report_message.embeds[0], view=view)
 
 @app_commands.context_menu(name="Report Message")
 async def report_message(interaction: discord.Interaction, message: discord.Message):
-    check_active()
     await handle_report(interaction, message, "message")
 
 @app_commands.context_menu(name="Report User")
 async def report_user(interaction: discord.Interaction, user: discord.User):
-    check_active()
     await handle_report(interaction, user, "user")
 
 if __name__ == "__main__":
