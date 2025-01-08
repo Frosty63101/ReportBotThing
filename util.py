@@ -197,6 +197,48 @@ def get_reports_color(color_key: str = "color"):
     color = report_formats.get(color_key, report_formats["color"])
     return (color["r"], color["g"], color["b"])
 
+def get_user_report_timeout():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["user_report_timeout"]
+
+def get_duplicate_user_report_message():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["duplicate_user_report_message"]
+
+def get_duplicate_message_report_message():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["duplicate_message_report_message"]
+
+def edit_duplicate_user_report_message(new_message: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["duplicate_user_report_message"] = new_message
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_duplicate_message_report_message(new_message: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["duplicate_message_report_message"] = new_message
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_user_report_timeout(timeout: int):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["user_report_timeout"] = timeout
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
 def edit_reports_title(title: str):
     verify_file("reports.json")
     with open("reports.json", "r") as f:

@@ -1,5 +1,6 @@
 import os
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -9,7 +10,9 @@ from models import get_claim_button_id, get_resolve_button_id, get_edit_reason_b
 from util import (
     get_token, get_report_channel, get_report_title,
     get_report_description, get_reports_color, 
-    get_mod_role, get_max_reason_length
+    get_mod_role, get_max_reason_length,
+    get_user_report_timeout, get_duplicate_user_report_message,
+    get_duplicate_message_report_message
 )
 
 bot = commands.AutoShardedBot(intents=discord.Intents.all(), command_prefix="!")
@@ -32,6 +35,8 @@ async def load_cogs():
     commandList.sort()
     print(f"Registered commands:\n{commandList}")
 
+executor = ThreadPoolExecutor()
+
 @bot.event
 async def on_ready():
     await load_cogs()
@@ -48,7 +53,7 @@ async def on_ready():
 
     if not check_active_reports.is_running():
         check_active_reports.start()
-    
+
     async def load_report_view(report):
         if report.embed_message_id:
             try:
@@ -61,10 +66,17 @@ async def on_ready():
             except discord.HTTPException as e:
                 print(f"Failed to load active report (ID {report.id}): {e}")
 
-    # Execute tasks concurrently
-    tasks = [load_report_view(report) for report in active_reports]
-    await asyncio.gather(*tasks)
+    # Define a task to process reports in a separate thread
+    async def process_reports():
+        def process_report_thread():
+            for report in active_reports:
+                asyncio.run_coroutine_threadsafe(load_report_view(report), bot.loop)
+                time.sleep(0.1)  # Prevent API spam
 
+        await asyncio.to_thread(process_report_thread)
+
+    # Run the processing task
+    await process_reports()
     print("Loaded all active report views.")
 
 class ReportReasonModal(discord.ui.Modal):
@@ -213,8 +225,6 @@ class ReportView(discord.ui.View):
         
         session = get_session()
         self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
-        self.reportObject.status = action
-        self.reportObject = session.query(reports).filter_by(id=self.reportObject.id).first()
         self.reportObject.resolver_id = interaction.user.id
         self.reportObject.last_updated = time.time()
         self.reportObject.status = "Resolved"
@@ -232,9 +242,10 @@ class ReportView(discord.ui.View):
 
 async def handle_report(
     interaction: discord.Interaction,
-    target: discord.User | discord.Message,
+    target: discord.Member | discord.Message,
     report_type: str,
 ):
+    print(type(target))
     mod_role_id = int(get_mod_role())
     mod_role = interaction.guild.get_role(mod_role_id)
     report_channel_id = int(get_report_channel())
@@ -275,7 +286,7 @@ async def handle_report(
     reportObject = reports(
         report_type=report_type,
         message_id=target.id if isinstance(target, discord.Message) else None,
-        user_id=target.id if isinstance(target, discord.User) else None,
+        user_id=target.id if isinstance(target, discord.Member) else None,
         reason=reason,
         status="Pending",
         claim_button_id=None,
@@ -285,7 +296,8 @@ async def handle_report(
         resolver_id=None,
         reporter_id=reporter.id,
         embed_message_id=None,
-        last_updated=time.time()
+        last_updated=time.time(),
+        report_time=time.time()
     )
     session.add(reportObject)
     session.flush()
@@ -347,10 +359,32 @@ async def check_active():
 
 @app_commands.context_menu(name="Report Message")
 async def report_message(interaction: discord.Interaction, message: discord.Message):
+    session = get_session()
+    if session.query(reports).filter_by(message_id=message.id).first():
+        await interaction.response.send_message(get_duplicate_message_report_message(), ephemeral=True)
+        return
     await handle_report(interaction, message, "message")
 
 @app_commands.context_menu(name="Report User")
 async def report_user(interaction: discord.Interaction, user: discord.User):
+    session = get_session()
+    report_object = session.query(reports).filter(reports.user_id == user.id, reports.report_time + int(get_user_report_timeout()) > time.time()).first()
+    if report_object:
+        reason_modal = ReportReasonModal(max_length=int(get_max_reason_length()))
+        reason = await reason_modal.get_reason(interaction)
+        report_channel_id = int(get_report_channel())
+        report_channel = bot.get_channel(report_channel_id)
+        report_message = await report_channel.fetch_message(report_object.embed_message_id)
+        embed = report_message.embeds[0]
+        for field in embed.fields:
+            if field.value == report_object.reason:
+                new_reason = f"{field.value}\n\n{reason}"
+                embed.set_field_at(embed.fields.index(field), name=field.name, value=new_reason, inline=field.inline)
+                report_object.reason = new_reason
+                await report_message.edit(embed=embed)
+                session.commit()
+        await interaction.followup.send(get_duplicate_user_report_message(), ephemeral=True)
+        return
     await handle_report(interaction, user, "user")
 
 if __name__ == "__main__":

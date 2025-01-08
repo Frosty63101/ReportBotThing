@@ -30,6 +30,7 @@ class reports(Base):
     resolver_id = Column(Integer, nullable=True)
     reporter_id = Column(Integer)
     embed_message_id = Column(Integer, nullable=True)
+    report_time = Column(Float, nullable=False, default=time.time())
     last_updated = Column(Float, nullable=False, default=time.time())
     active = Column(Boolean, default=True)
 

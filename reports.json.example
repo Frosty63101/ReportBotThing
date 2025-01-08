@@ -1,8 +1,8 @@
 {
     "title-message": "Message Report from #{channelName}",
     "title-user": "User Report",
-    "description-message": "Channel:\n{channelMention}???Reported by:\n{reporterMention}???Message Author:\n{messageAuthorMention}!!!Message:\n{messageContent}!!!Direct Link:\n{messageLink}!!!Reported at - {time}",
-    "description-user": "User: {user} ({userID})\n\n**Reason:** {reason}",
+    "description-message": "Channel:\n{channelMention}???Reported by:\n{reporterMention}???Message Author:\n{messageAuthorMention}!!!Message:\n{messageContent}!!!Reason:\n{reason}!!!Direct Link:\n{messageLink}!!!Reported at - {time}",
+    "description-user": "User:\n{userMention}???Reported by:\n{reporterMention}!!!Reason\n{reason}!!!Reported at - {time}",
     "color": {
         "r": 255,
         "g": 0,
@@ -18,5 +18,8 @@
         "g": 255,
         "b": 0
     },
-    "max_reason_length": 300
+    "max_reason_length": 300,
+    "user_report_timeout": 60,
+    "duplicate_user_report_message": "Thank you for reporting this user but someone else beat you to it, the mod team is taking a look!",
+    "duplicate_message_report_message": "Thank you for reporting this message but someone else beat you to it, the mod team is taking a look!"
 }
