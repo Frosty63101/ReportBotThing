@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import json
 from util import update_reports_json, Role, has_role
-from ReportStringCustomization import ReportStringCustomization
+from cogs.aReportStringCustomization import ReportStringCustomization
 
 class EditReports(commands.Cog):
     def __init__(self, bot):
