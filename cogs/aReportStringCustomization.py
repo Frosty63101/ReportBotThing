@@ -3,6 +3,13 @@ from discord.ext import commands
 from discord import ui
 import json
 from util import Role, has_role
+from util import (
+    get_token, get_report_channel, get_report_title,
+    get_report_description, get_reports_color, 
+    get_mod_role, get_max_reason_length,
+    get_user_report_timeout, get_duplicate_user_report_message,
+    get_duplicate_message_report_message
+)
 
 class ReportStringCustomization(commands.Cog):
     def __init__(self, bot):
@@ -18,6 +25,9 @@ class ReportStringCustomization(commands.Cog):
             self.add_item(ReportStringCustomization.ReportUserDescriptionButton(ctx))
             self.add_item(ReportStringCustomization.ReportMessageTitleButton(ctx))
             self.add_item(ReportStringCustomization.ReportMessageDescriptionButton(ctx))
+            self.add_item(ReportStringCustomization.DuplicateReportMessageMessage(ctx))
+            self.add_item(ReportStringCustomization.DuplicateReportUserMessage(ctx))
+            self.add_item(ReportStringCustomization.OtherSettings(ctx))
 
     class ReportUserTitleButton(ui.Button):
         def __init__(self, ctx):
@@ -118,7 +128,87 @@ class ReportStringCustomization(commands.Cog):
                 color=discord.Color.blue()
             )
             await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    class DuplicateReportMessageMessage(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Duplicate Report Message Message", style=discord.ButtonStyle.primary)
 
+        async def callback(self, interaction: discord.Interaction):
+            with open("reports.json", "r") as f:
+                report_formats = json.load(f)
+
+            current_value = report_formats.get("duplicate_message_report_message", "Not set")
+            current_value = current_value.replace("\n", "\\n")
+            command = f"!editDuplaicateReportMessage message {current_value}"
+
+            embed = discord.Embed(
+                title="Current Duplicate Report Message Message",
+                description=(
+                    f"Below is the current string for the `duplicate_message_report_message`.\n\n"
+                    f"```{current_value}```\n"
+                    f"Use the command below to edit it:\n\n"
+                    f"```{command}```"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+
+    class DuplicateReportUserMessage(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Duplicate Report User Message", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            with open("reports.json", "r") as f:
+                report_formats = json.load(f)
+
+            current_value = report_formats.get("duplicate_user_report_message", "Not set")
+            current_value = current_value.replace("\n", "\\n")
+            command = f"!editDuplaicateReportMessage user {current_value}"
+
+            embed = discord.Embed(
+                title="Current Duplicate Report User Message",
+                description=(
+                    f"Below is the current string for the `duplicate_user_report_message`.\n\n"
+                    f"```{current_value}```\n"
+                    f"Use the command below to edit it:\n\n"
+                    f"```{command}```"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    class OtherSettings(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Other Settings", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+
+            embed = discord.Embed(
+                title="Current Other Settings",
+                description=(
+                    f"Below is the current settings for the max reason length.\n\n"
+                    f"```{get_max_reason_length()}```\n"
+                    f"```{f'!editMaxReasonLength {get_max_reason_length()}'}```\n"
+                    f"Below is the current settings for the duplicate user report timeout.\n\n"
+                    f"```{get_user_report_timeout()}```\n"
+                    f"```!editUserReportTimeout {get_user_report_timeout()}```\n"
+                    f"Below is the current settings for the report embed color.\n\n"
+                    f"```{get_reports_color('color')}```"
+                    f"```!editReportsColor color {get_reports_color('color')}```\n"
+                    f"Below is the current settings for the claimed report embed color.\n\n"
+                    f"```{get_reports_color('claimed_color')}```"
+                    f"```!editReportsColor claimed {get_reports_color('claimed_color')}```\n"
+                    f"Below is the current settings for the resolved report embed color.\n\n"
+                    f"```{get_reports_color('resolved_color')}```"
+                    f"```!editReportsColor resolved {get_reports_color('resolved_color')}```\n"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+    
     @commands.command()
     @has_role(Role.senior)
     async def customizeReports(self, ctx):

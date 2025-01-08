@@ -336,9 +336,6 @@ async def check_active():
     for report in active_reports:
         if report.last_updated + 172800 < current_time:
             report.active = False
-            report.claim_button_active = False
-            report.resolve_button_active = False
-            report.edit_reason_button_active = False
 
             # Fetch the report message
             if report.embed_message_id:
@@ -356,6 +353,8 @@ async def check_active():
 
                 # Edit the message with the updated view
                 await report_message.edit(embed=report_message.embeds[0], view=view)
+    
+    session.commit()
 
 @app_commands.context_menu(name="Report Message")
 async def report_message(interaction: discord.Interaction, message: discord.Message):

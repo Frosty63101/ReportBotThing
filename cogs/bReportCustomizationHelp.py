@@ -26,7 +26,6 @@ class ReportCustomizationHelp(commands.Cog):
                 title="Customizing Report User Title",
                 description=(
                     "You can customize the report user title using the '' command. "
-                    "to separate the fields in the title use '???' for inline fields and '!!!' for non-inline fields. "
                     "The following keys are available for the format string:\n\n"
                     " - '{reporter}' : This is the user object of the person who initiated the report.\n"
                     " - '{reporterMention}' : This is the mention of the person who initiated the report.\n"
@@ -52,7 +51,7 @@ class ReportCustomizationHelp(commands.Cog):
                 title="Customizing Report User Description",
                 description=(
                     "You can customize the report user description using the '' command. "
-                    "to separate the fields in the description use '???' for inline fields and '!!!' for non-inline fields. "
+                    "to separate the fields in the description use '???' for inline fields and '!!!' for non-inline fields. To separate the field title and body use '\\n' "
                     "The following keys are available for the format string:\n\n"
                     " - '{reporter}' : This is the user object of the person who initiated the report.\n"
                     " - '{reporterMention}' : This is the mention of the person who initiated the report.\n"
@@ -78,7 +77,6 @@ class ReportCustomizationHelp(commands.Cog):
                 title="Customizing Report Message Title",
                 description=(
                     "You can customize the report message title using the '' command. "
-                    "to separate the fields in the description use '???' for inline fields and '!!!' for non-inline fields. "
                     "The following keys are available for the format string:\n\n"
                     " - '{reporter}' : This is the user object of the person who initiated the report.\n"
                     " - '{reporterMention}' : This is the mention of the person who initiated the report.\n"
@@ -110,7 +108,7 @@ class ReportCustomizationHelp(commands.Cog):
                 title="Customizing Report Message Description",
                 description=(
                     "You can customize the report message description using the '' command. "
-                    "to separate the fields in the description use '???' for inline fields and '!!!' for non-inline fields. "
+                    "to separate the fields in the description use '???' for inline fields and '!!!' for non-inline fields. To separate the field title and body use '\\n' "
                     "The following keys are available for the format string:\n\n"
                     " - '{reporter}' : This is the user object of the person who initiated the report.\n"
                     " - '{reporterMention}' : This is the mention of the person who initiated the report.\n"
