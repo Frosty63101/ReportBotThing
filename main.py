@@ -6,13 +6,16 @@ from discord.ext import commands
 from discord import app_commands
 from discord.ext import tasks
 import time
-from models import get_claim_button_id, get_resolve_button_id, get_edit_reason_button_id, get_report_by_id, get_report_by_message_id, get_report_by_user_id, get_session, reports
+from models import get_claim_button_id, get_resolve_button_id, get_edit_reason_button_id, get_session, reports
 from util import (
     get_token, get_report_channel, get_report_title,
     get_report_description, get_reports_color, 
     get_mod_role, get_max_reason_length,
     get_user_report_timeout, get_duplicate_user_report_message,
-    get_duplicate_message_report_message
+    get_duplicate_message_report_message, get_report_failure_message,
+    get_user_report_message, get_message_report_message,
+    get_report_modal_reason_label, get_report_modal_reason_placeholder,
+    get_duplicate_report_modal_reason_label, get_duplicate_report_modal_reason_placeholder
 )
 
 bot = commands.AutoShardedBot(intents=discord.Intents.all(), command_prefix="!")
@@ -80,15 +83,24 @@ async def on_ready():
     print("Loaded all active report views.")
 
 class ReportReasonModal(discord.ui.Modal):
-    def __init__(self, max_length: int):
+    def __init__(self, max_length: int, duplicate=False):
         super().__init__(title="Add a Reason for the Report")
-        self.reason = discord.ui.TextInput(
-            label="Reason (Optional)",
-            style=discord.TextStyle.long,
-            placeholder="Provide a reason for this report...",
-            required=False,
-            max_length=max_length
-        )
+        if not duplicate:
+            self.reason = discord.ui.TextInput(
+                label=get_report_modal_reason_label(),
+                style=discord.TextStyle.long,
+                placeholder=get_report_modal_reason_placeholder(),
+                required=False,
+                max_length=max_length
+            )
+        else:
+            self.reason = discord.ui.TextInput(
+                label=get_duplicate_report_modal_reason_label(),
+                style=discord.TextStyle.long,
+                placeholder=get_duplicate_report_modal_reason_placeholder(),
+                required=False,
+                max_length=max_length
+            )
         self.add_item(self.reason)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -259,9 +271,11 @@ async def handle_report(
     reason = await reason_modal.get_reason(interaction)
 
     if isinstance(target, discord.Message):
+        await interaction.followup.send(get_message_report_message(), ephemeral=True)
         description = get_report_description(reporter, target, None, reason)
         title = get_report_title(reporter, target, None, reason)
     else:
+        await interaction.followup.send(get_user_report_message(), ephemeral=True)
         description = get_report_description(reporter, None, target, reason)
         title = get_report_title(reporter, None, target, reason)
     
@@ -315,7 +329,7 @@ async def handle_report(
         await report_message.edit(view=view)
     except discord.HTTPException as e:
         await interaction.response.send_message(
-            f"Failed to send the report due to an error: {e}", ephemeral=True
+            get_report_failure_message(), ephemeral=True
         )
 
 @tasks.loop(seconds=3600)  # Runs every hour (adjust as needed)
@@ -369,7 +383,7 @@ async def report_user(interaction: discord.Interaction, user: discord.User):
     session = get_session()
     report_object = session.query(reports).filter(reports.user_id == user.id, reports.report_time + int(get_user_report_timeout()) > time.time()).first()
     if report_object:
-        reason_modal = ReportReasonModal(max_length=int(get_max_reason_length()))
+        reason_modal = ReportReasonModal(max_length=int(get_max_reason_length()), duplicate=True)
         reason = await reason_modal.get_reason(interaction)
         report_channel_id = int(get_report_channel())
         report_channel = bot.get_channel(report_channel_id)

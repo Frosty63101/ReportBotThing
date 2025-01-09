@@ -110,6 +110,63 @@ class EditReports(commands.Cog):
         with open("reports.json", "w") as f:
             json.dump(data, f, indent=4)
         await ctx.send(f"Updated `{key}` to: `{new_value}`")
+    
+    @commands.command()
+    @has_role(Role.senior)
+    async def editReportFailureMessage(self, ctx, new_value: str):
+        """
+        Edit the failure message for reports.
+        Usage: !editReportFailureMessage <new_value>
+        """
+        key = "report-failure-message"
+        update_reports_json(key, new_value)
+        await ctx.send(f"Updated `{key}` to: `{new_value}`")
+    
+    @commands.command()
+    @has_role(Role.senior)
+    async def editReportModalReasonLabel(self, ctx, new_value: str):
+        """
+        Edit the reason label for the report modal.
+        Usage: !editReportModalReasonLabel <new_value>
+        """
+        key = "report-modal-reason-label"
+        update_reports_json(key, new_value)
+        await ctx.send(f"Updated `{key}` to: `{new_value}`")
+    
+    @commands.command()
+    @has_role(Role.senior)
+    async def editReportModalReasonPlaceholder(self, ctx, new_value: str):
+        """
+        Edit the reason placeholder for the report modal.
+        Usage: !editReportModalReasonPlaceholder <new_value>
+        """
+        key = "report-modal-reason-placeholder"
+        update_reports_json(key, new_value)
+        await ctx.send(f"Updated `{key}` to: `{new_value}`")
+    
+    @commands.command()
+    @has_role(Role.senior)
+    async def editDuplicateReportModalReasonLabel(self, ctx, new_value: str):
+        """
+        Edit the reason label for the duplicate report modal.
+        Usage: !editDuplicateReportModalReasonLabel <new_value>
+        """
+        key = "duplicate-report-modal-reason-label"
+        update_reports_json(key, new_value)
+        await ctx.send(f"Updated `{key}` to: `{new_value}`")
+    
+    @commands.command()
+    @has_role(Role.senior)
+    async def editDuplicateReportModalReasonPlaceholder(self, ctx, new_value: str):
+        """
+        Edit the reason placeholder for the duplicate report modal.
+        Usage: !editDuplicateReportModalReasonPlaceholder <new_value>
+        """
+        key = "duplicate-report-modal-reason-placeholder"
+        update_reports_json(key, new_value)
+        await ctx.send(f"Updated `{key}` to: `{new_value}`")
+    
+    
 
 async def setup(bot):
     await bot.add_cog(EditReports(bot))

@@ -28,6 +28,11 @@ class ReportStringCustomization(commands.Cog):
             self.add_item(ReportStringCustomization.DuplicateReportMessageMessage(ctx))
             self.add_item(ReportStringCustomization.DuplicateReportUserMessage(ctx))
             self.add_item(ReportStringCustomization.OtherSettings(ctx))
+            self.add_item(ReportStringCustomization.report_failure_message(ctx))
+            self.add_item(ReportStringCustomization.report_modal_reason_label(ctx))
+            self.add_item(ReportStringCustomization.report_modal_reason_placeholder(ctx))
+            self.add_item(ReportStringCustomization.duplicate_report_modal_reason_label(ctx))
+            self.add_item(ReportStringCustomization.duplicate_report_modal_reason_placeholder(ctx))
 
     class ReportUserTitleButton(ui.Button):
         def __init__(self, ctx):
@@ -171,6 +176,131 @@ class ReportStringCustomization(commands.Cog):
                 title="Current Duplicate Report User Message",
                 description=(
                     f"Below is the current string for the `duplicate_user_report_message`.\n\n"
+                    f"```{current_value}```\n"
+                    f"Use the command below to edit it:\n\n"
+                    f"```{command}```"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    class report_failure_message(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Report Failure Message", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            with open("reports.json", "r") as f:
+                report_formats = json.load(f)
+
+            current_value = report_formats.get("report_failure_message", "Not set")
+            current_value = current_value.replace("\n", "\\n")
+            command = f"!editReportFailureMessage {current_value}"
+
+            embed = discord.Embed(
+                title="Current Report Failure Message",
+                description=(
+                    f"Below is the current string for the `report_failure_message`.\n\n"
+                    f"```{current_value}```\n"
+                    f"Use the command below to edit it:\n\n"
+                    f"```{command}```"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    class report_modal_reason_label(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Report Modal Reason Label", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            with open("reports.json", "r") as f:
+                report_formats = json.load(f)
+
+            current_value = report_formats.get("report_modal_reason_label", "Not set")
+            current_value = current_value.replace("\n", "\\n")
+            command = f"!editReportModalReasonLabel {current_value}"
+
+            embed = discord.Embed(
+                title="Current Report Modal Reason Label",
+                description=(
+                    f"Below is the current string for the `report_modal_reason_label`.\n\n"
+                    f"```{current_value}```\n"
+                    f"Use the command below to edit it:\n\n"
+                    f"```{command}```"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    class report_modal_reason_placeholder(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Report Modal Reason Placeholder", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            with open("reports.json", "r") as f:
+                report_formats = json.load(f)
+
+            current_value = report_formats.get("report_modal_reason_placeholder", "Not set")
+            current_value = current_value.replace("\n", "\\n")
+            command = f"!editReportModalReasonPlaceholder {current_value}"
+
+            embed = discord.Embed(
+                title="Current Report Modal Reason Placeholder",
+                description=(
+                    f"Below is the current string for the `report_modal_reason_placeholder`.\n\n"
+                    f"```{current_value}```\n"
+                    f"Use the command below to edit it:\n\n"
+                    f"```{command}```"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    class duplicate_report_modal_reason_label(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Duplicate Report Modal Reason Label", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            with open("reports.json", "r") as f:
+                report_formats = json.load(f)
+
+            current_value = report_formats.get("duplicate_report_modal_reason_label", "Not set")
+            current_value = current_value.replace("\n", "\\n")
+            command = f"!editDuplicateReportModalReasonLabel {current_value}"
+
+            embed = discord.Embed(
+                title="Current Duplicate Report Modal Reason Label",
+                description=(
+                    f"Below is the current string for the `duplicate_report_modal_reason_label`.\n\n"
+                    f"```{current_value}```\n"
+                    f"Use the command below to edit it:\n\n"
+                    f"```{command}```"
+                ),
+                color=discord.Color.blue()
+            )
+            await interaction.response.edit_message(embed=embed, view=self.view)
+    
+    class duplicate_report_modal_reason_placeholder(ui.Button):
+        def __init__(self, ctx):
+            self.ctx = ctx
+            super().__init__(label="Duplicate Report Modal Reason Placeholder", style=discord.ButtonStyle.primary)
+
+        async def callback(self, interaction: discord.Interaction):
+            with open("reports.json", "r") as f:
+                report_formats = json.load(f)
+
+            current_value = report_formats.get("duplicate_report_modal_reason_placeholder", "Not set")
+            current_value = current_value.replace("\n", "\\n")
+            command = f"!editDuplicateReportModalReasonPlaceholder {current_value}"
+
+            embed = discord.Embed(
+                title="Current Duplicate Report Modal Reason Placeholder",
+                description=(
+                    f"Below is the current string for the `duplicate_report_modal_reason_placeholder`.\n\n"
                     f"```{current_value}```\n"
                     f"Use the command below to edit it:\n\n"
                     f"```{command}```"

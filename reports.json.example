@@ -20,6 +20,13 @@
     },
     "max_reason_length": 300,
     "user_report_timeout": 60,
+    "message_report_message": "Thank you for your report! The staff team will look into the message ASAP!",
+    "user_report_message": "Thank you for your report! The staff team will look into the user ASAP!",
     "duplicate_user_report_message": "Thank you for reporting this user but someone else beat you to it, the mod team is taking a look!",
-    "duplicate_message_report_message": "Thank you for reporting this message but someone else beat you to it, the mod team is taking a look!"
+    "duplicate_message_report_message": "Thank you for reporting this message but someone else beat you to it, the mod team is taking a look!",
+    "report_failure_message": "Sorry, I couldn't send your report. Please open a ticket",
+    "report_modal_reason_label": "Please provide a reason for your report (optional)",
+    "report_modal_reason_placeholder": "Reason",
+    "duplicate_report_modal_reason_label": "Please provide a reason for your report (optional)",
+    "duplicate_report_modal_reason_placeholder": "Reason"
 }

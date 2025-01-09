@@ -215,6 +215,106 @@ def get_duplicate_message_report_message():
         reportFormats = json.load(f)
     return reportFormats["duplicate_message_report_message"]
 
+def get_message_report_message():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["message_report_message"]
+
+def get_user_report_message():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["user_report_message"]
+
+def get_report_failure_message():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["report_failure_message"]
+
+def get_report_modal_reason_label():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["report_modal_reason_label"]
+
+def get_report_modal_reason_placeholder():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["report_modal_reason_placeholder"]
+
+def get_duplicate_report_modal_reason_label():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["duplicate_report_modal_reason_label"]
+
+def get_duplicate_report_modal_reason_placeholder():
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    return reportFormats["duplicate_report_modal_reason_placeholder"]
+
+### EDIT FUNCTIONS ###
+
+def edit_message_report_message(value: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["message_report_message"] = value
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_user_report_message(value: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["user_report_message"] = value
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_report_failure_message(value: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["report_failure_message"] = value
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_report_modal_reason_label(value: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["report_modal_reason_label"] = value
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_report_modal_reason_placeholder(value: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["report_modal_reason_placeholder"] = value
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_duplicate_report_modal_reason_label(value: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["duplicate_report_modal_reason_label"] = value
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
+def edit_duplicate_report_modal_reason_placeholder(value: str):
+    verify_file("reports.json")
+    with open("reports.json", "r") as f:
+        reportFormats = json.load(f)
+    reportFormats["duplicate_report_modal_reason_placeholder"] = value
+    with open("reports.json", "w") as f:
+        json.dump(reportFormats, f, indent=4)
+
 def edit_duplicate_user_report_message(new_message: str):
     verify_file("reports.json")
     with open("reports.json", "r") as f:
