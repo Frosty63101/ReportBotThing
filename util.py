@@ -2,7 +2,6 @@ import os
 import time
 from dotenv import load_dotenv
 from enum import Enum as PyEnum
-from typing import Union
 import discord
 from discord.ext import commands
 import json
