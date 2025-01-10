@@ -4,11 +4,9 @@ from discord import ui
 import json
 from util import Role, has_role
 from util import (
-    get_token, get_report_channel, get_report_title,
-    get_report_description, get_reports_color, 
-    get_mod_role, get_max_reason_length,
-    get_user_report_timeout, get_duplicate_user_report_message,
-    get_duplicate_message_report_message, rgbToHex
+    get_reports_color, 
+    get_max_reason_length,
+    get_user_report_timeout, rgbToHex
 )
 import time
 
