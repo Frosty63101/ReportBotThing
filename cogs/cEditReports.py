@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 from util import update_reports_json, Role, has_role
 from cogs.aReportStringCustomization import ReportStringCustomization
+import re
 
 class EditReports(commands.Cog):
     def __init__(self, bot):
@@ -101,15 +102,26 @@ class EditReports(commands.Cog):
             key = f"{type}_color"
         with open("reports.json", "r") as f:
             data = json.load(f)
-        new_value = new_value.replace(" ", ",")
-        new_value = new_value.replace("(", "")
-        new_value = new_value.replace(")", "")
-        data[key]['r'] = int(new_value.split(",")[0])
-        data[key]['g'] = int(new_value.split(",")[1])
-        data[key]['b'] = int(new_value.split(",")[2])
-        with open("reports.json", "w") as f:
-            json.dump(data, f, indent=4)
-        await ctx.send(f"Updated `{key}` to: `{new_value}`")
+        if re.match(r"^#[0-9A-Fa-f]{6}$", new_value):
+            new_value = new_value.lstrip("#")
+            data[key]['r'] = int(new_value[:2], 16)
+            data[key]['g'] = int(new_value[2:4], 16)
+            data[key]['b'] = int(new_value[4:], 16)
+            with open("reports.json", "w") as f:
+                json.dump(data, f, indent=4)
+        elif re.match(r"^\d{1,3}( |,)\d{1,3}( |,)\d{1,3}$", new_value):
+            new_value = new_value.replace(" ", ",")
+            new_value = new_value.replace("(", "")
+            new_value = new_value.replace(")", "")
+            data[key]['r'] = int(new_value.split(",")[0])
+            data[key]['g'] = int(new_value.split(",")[1])
+            data[key]['b'] = int(new_value.split(",")[2])
+            with open("reports.json", "w") as f:
+                json.dump(data, f, indent=4)
+            await ctx.send(f"Updated `{key}` to: `{new_value}`")
+        else:
+            await ctx.send("Invalid color value. Use a hex color code or RGB values.")
+            return
     
     @commands.command()
     @has_role(Role.senior)

@@ -15,10 +15,39 @@ from util import (
     get_duplicate_message_report_message, get_report_failure_message,
     get_user_report_message, get_message_report_message,
     get_report_modal_reason_label, get_report_modal_reason_placeholder,
-    get_duplicate_report_modal_reason_label, get_duplicate_report_modal_reason_placeholder
+    get_duplicate_report_modal_reason_label, get_duplicate_report_modal_reason_placeholder,
+    get_stored_prefix, edit_prefix
 )
 
-bot = commands.AutoShardedBot(intents=discord.Intents.all(), command_prefix="!")
+prefix = get_stored_prefix()
+
+# Function to dynamically get the prefix
+async def get_prefix(bot, message):
+    global prefix
+    return prefix
+
+bot = commands.AutoShardedBot(intents=discord.Intents.all(), command_prefix=get_prefix)
+
+@bot.command(name="changeprefix")
+@commands.has_permissions(administrator=True)
+async def change_prefix(ctx, new_prefix: str):
+    """
+    Change the bot's command prefix.
+    Only users with administrator permission can use this command.
+    """
+    global prefix
+    if len(new_prefix) > 3:  # Limit the prefix length for usability
+        await ctx.send("The prefix is too long! Please use a shorter prefix (max 3 characters).")
+        return
+
+    prefix = new_prefix
+    edit_prefix(new_prefix)
+    await ctx.send(f"Prefix successfully changed to `{prefix}`")
+
+@change_prefix.error
+async def change_prefix_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You don't have permission to change the prefix!")
 
 async def load_cogs():
     for cog in os.listdir("cogs"):
@@ -26,6 +55,7 @@ async def load_cogs():
             cog = cog[:-3]
             try:
                 await bot.load_extension(f"cogs.{cog}")
+                time.sleep(1)  # Prevent API spam
                 print(f"Loaded {cog} cog.")
             except Exception as e:
                 print(f"Failed to load {cog} cog: {e}")
@@ -58,25 +88,27 @@ async def on_ready():
         check_active_reports.start()
 
     async def load_report_view(report):
+        await asyncio.sleep(1)  # Prevent API spam
         if report.embed_message_id:
             try:
                 report_channel_id = int(get_report_channel())
                 report_channel = bot.get_channel(report_channel_id)
                 report_message = await report_channel.fetch_message(report.embed_message_id)
                 embed = report_message.embeds[0]
+                await asyncio.sleep(1)  # Prevent API spam
                 view = ReportView(embed=embed, report_message=report_message, reportObject=report)
+                await asyncio.sleep(1)  # Prevent API spam
                 await report_message.edit(view=view)
             except discord.HTTPException as e:
                 print(f"Failed to load active report (ID {report.id}): {e}")
 
     # Define a task to process reports in a separate thread
     async def process_reports():
-        def process_report_thread():
-            for report in active_reports:
-                asyncio.run_coroutine_threadsafe(load_report_view(report), bot.loop)
-                time.sleep(0.1)  # Prevent API spam
-
-        await asyncio.to_thread(process_report_thread)
+        for i, report in enumerate(active_reports):
+            await asyncio.sleep(2)  # Prevent API spam
+            asyncio.run_coroutine_threadsafe(load_report_view(report), bot.loop)
+            if i % 5 == 0:  # Add a delay after every 5 reports
+                await asyncio.sleep(5)
 
     # Run the processing task
     await process_reports()
@@ -163,7 +195,6 @@ class ReportView(discord.ui.View):
         Updates the embed description with the latest status and changes the color.
         """
         # Replace the status text
-        print("updating embed")
         updatedDescription = self.embed.description.replace(
             f"**Status:** {self.status}",
             f"**Status:** {newStatus}"
@@ -187,6 +218,7 @@ class ReportView(discord.ui.View):
         self.embed.color = discord.Color.from_rgb(*rgb)
         
         # Apply updates by editing the message
+        time.sleep(2)  # Prevent API spam
         await self.reportMessage.edit(embed=self.embed, view=self)
     
     @discord.ui.button(label="Claim", style=discord.ButtonStyle.primary)
@@ -348,6 +380,7 @@ async def check_active():
     report_channel = bot.get_channel(report_channel_id)
 
     for report in active_reports:
+        time.sleep(1)  # Prevent API spam
         if report.last_updated + 172800 < current_time:
             report.active = False
 
@@ -359,6 +392,7 @@ async def check_active():
                 # Create a new view and disable buttons
                 view = ReportView(embed=report_message.embeds[0], report_message=report_message, reportObject=report)
                 for child in view.children:
+                    time.sleep(0.2)
                     if isinstance(child, discord.ui.Button):
                         child.disabled = True
 

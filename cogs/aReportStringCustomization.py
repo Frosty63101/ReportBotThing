@@ -8,8 +8,9 @@ from util import (
     get_report_description, get_reports_color, 
     get_mod_role, get_max_reason_length,
     get_user_report_timeout, get_duplicate_user_report_message,
-    get_duplicate_message_report_message
+    get_duplicate_message_report_message, rgbToHex
 )
+import time
 
 class ReportStringCustomization(commands.Cog):
     def __init__(self, bot):
@@ -24,12 +25,15 @@ class ReportStringCustomization(commands.Cog):
             self.add_item(ReportStringCustomization.ReportUserTitleButton(ctx))
             self.add_item(ReportStringCustomization.ReportUserDescriptionButton(ctx))
             self.add_item(ReportStringCustomization.ReportMessageTitleButton(ctx))
+            time.sleep(0.1)
             self.add_item(ReportStringCustomization.ReportMessageDescriptionButton(ctx))
             self.add_item(ReportStringCustomization.DuplicateReportMessageMessage(ctx))
             self.add_item(ReportStringCustomization.DuplicateReportUserMessage(ctx))
+            time.sleep(0.1)
             self.add_item(ReportStringCustomization.OtherSettings(ctx))
             self.add_item(ReportStringCustomization.report_failure_message(ctx))
             self.add_item(ReportStringCustomization.report_modal_reason_label(ctx))
+            time.sleep(0.1)
             self.add_item(ReportStringCustomization.report_modal_reason_placeholder(ctx))
             self.add_item(ReportStringCustomization.duplicate_report_modal_reason_label(ctx))
             self.add_item(ReportStringCustomization.duplicate_report_modal_reason_placeholder(ctx))
@@ -326,14 +330,17 @@ class ReportStringCustomization(commands.Cog):
                     f"```{get_user_report_timeout()}```\n"
                     f"```!editUserReportTimeout {get_user_report_timeout()}```\n"
                     f"Below is the current settings for the report embed color.\n\n"
-                    f"```{get_reports_color('color')}```"
-                    f"```!editReportsColor color {get_reports_color('color')}```\n"
+                    f"```{get_reports_color('color')} // {rgbToHex(get_reports_color('color'))}```\n"
+                    f"```!editReportsColor color {get_reports_color('color')}```"
+                    f"```!editReportsColor color {rgbToHex(get_reports_color('color'))}```\n"
                     f"Below is the current settings for the claimed report embed color.\n\n"
-                    f"```{get_reports_color('claimed_color')}```"
-                    f"```!editReportsColor claimed {get_reports_color('claimed_color')}```\n"
+                    f"```{get_reports_color('claimed_color')} // {rgbToHex(get_reports_color('claimed_color'))}```\n"
+                    f"```!editReportsColor claimed {get_reports_color('claimed_color')}```"
+                    f"```!editReportsColor claimed {rgbToHex(get_reports_color('claimed_color'))}```\n"
                     f"Below is the current settings for the resolved report embed color.\n\n"
-                    f"```{get_reports_color('resolved_color')}```"
-                    f"```!editReportsColor resolved {get_reports_color('resolved_color')}```\n"
+                    f"```{get_reports_color('resolved_color')} // {rgbToHex(get_reports_color('resolved_color'))}```\n"
+                    f"```!editReportsColor resolved {get_reports_color('resolved_color')}```"
+                    f"```!editReportsColor resolved {rgbToHex(get_reports_color('resolved_color'))}```\n"
                 ),
                 color=discord.Color.blue()
             )

@@ -390,6 +390,18 @@ def edit_env(key, value):
         f.writelines(lines)
     reload_env()
 
+def get_stored_prefix():
+    verify_file(".env")
+    ensure_env_loaded()
+    return str(os.getenv("PREFIX"))
+
+def edit_prefix(new_prefix: str):
+    verify_file(".env")
+    edit_env("PREFIX", new_prefix)
+
+def rgbToHex(rgb):
+    return '#{:02X}{:02X}{:02X}'.format(rgb[0], rgb[1], rgb[2])
+
 def has_role(role: Role):
     def predicate(ctx: commands.context):
         if role == Role.owner:
