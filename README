@@ -82,7 +82,3 @@ To customize the report messages and settings, modify the `reports.json` file or
 Use reportHelp and customizeReports to view the available customization commands.
 
 ---
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
