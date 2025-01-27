@@ -46,10 +46,16 @@ async def change_prefix(ctx, new_prefix: str):
 
 @change_prefix.error
 async def change_prefix_error(ctx, error):
+    """
+    Handle errors for the change_prefix command.
+    """
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("You don't have permission to change the prefix!")
 
 async def load_cogs():
+    """
+    Load all cogs in the 'cogs' directory.
+    """
     for cog in os.listdir("cogs"):
         if cog.endswith(".py"):
             cog = cog[:-3]
@@ -72,6 +78,9 @@ executor = ThreadPoolExecutor()
 
 @bot.event
 async def on_ready():
+    """ 
+    Load cogs and sync commands when the bot is ready.
+    """
     await load_cogs()
     print(f"Logged in as {bot.user}!")
     try:
@@ -88,6 +97,9 @@ async def on_ready():
         check_active_reports.start()
 
     async def load_report_view(report):
+        """ 
+        Load the view for an active report.
+        """
         await asyncio.sleep(1)  # Prevent API spam
         if report.embed_message_id:
             try:
@@ -104,6 +116,9 @@ async def on_ready():
 
     # Define a task to process reports in a separate thread
     async def process_reports():
+        """
+        Load all active report views with asyncio.
+        """
         for i, report in enumerate(active_reports):
             await asyncio.sleep(2)  # Prevent API spam
             asyncio.run_coroutine_threadsafe(load_report_view(report), bot.loop)
@@ -289,6 +304,9 @@ async def handle_report(
     target: discord.Member | discord.Message,
     report_type: str,
 ):
+    """ 
+    handles the report command
+    """
     print(type(target))
     mod_role_id = int(get_mod_role())
     mod_role = interaction.guild.get_role(mod_role_id)
@@ -366,13 +384,24 @@ async def handle_report(
 
 @tasks.loop(seconds=3600)  # Runs every hour (adjust as needed)
 async def check_active_reports():
+    """ 
+    Check active reports and disable
+    them if they are older than 48 hours.
+    """
     await check_active() 
 
 @check_active_reports.before_loop
 async def before_check_active_reports():
+    """ 
+    Wait until the bot is ready before starting the loop.
+    """
     await bot.wait_until_ready() 
 
 async def check_active():
+    """ 
+    Check active reports and disable
+    them if they are older than 48 hours.
+    """
     session = get_session()
     active_reports = session.query(reports).filter_by(active=True).all()
     current_time = time.time()
@@ -406,6 +435,9 @@ async def check_active():
 
 @app_commands.context_menu(name="Report Message")
 async def report_message(interaction: discord.Interaction, message: discord.Message):
+    """ 
+    Handle the 'Report Message' context menu command.
+    """
     session = get_session()
     if session.query(reports).filter_by(message_id=message.id).first():
         await interaction.response.send_message(get_duplicate_message_report_message(), ephemeral=True)
@@ -414,9 +446,12 @@ async def report_message(interaction: discord.Interaction, message: discord.Mess
 
 @app_commands.context_menu(name="Report User")
 async def report_user(interaction: discord.Interaction, user: discord.User):
+    """ 
+    Handle the 'Report User' context menu command.
+    """
     session = get_session()
     report_object = session.query(reports).filter(reports.user_id == user.id, reports.report_time + int(get_user_report_timeout()) > time.time()).first()
-    if report_object:
+    if report_object: # if the report has already been filed
         reason_modal = ReportReasonModal(max_length=int(get_max_reason_length()), duplicate=True)
         reason = await reason_modal.get_reason(interaction)
         report_channel_id = int(get_report_channel())
