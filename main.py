@@ -143,7 +143,7 @@ async def on_ready():
 
 class ReportReasonModal(discord.ui.Modal):
     def __init__(self, max_length: int, duplicate=False):
-        super().__init__(title="Add a Reason for the Report")
+        super().__init__(title="Add a Reason")
         if not duplicate:
             self.reason = discord.ui.TextInput(
                 label=get_report_modal_reason_label(),
