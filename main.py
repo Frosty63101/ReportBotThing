@@ -110,7 +110,19 @@ async def on_ready():
                 await asyncio.sleep(1)  # Prevent API spam
                 view = ReportView(embed=embed, report_message=report_message, reportObject=report)
                 await asyncio.sleep(1)  # Prevent API spam
-                await report_message.edit(view=view)
+                try:
+                    await report_message.edit(view=view)
+                except discord.HTTPException as e:
+                    if e.code == 30046:
+                        print("Cannot edit this old message anymore. Skipping.")
+                        session = get_session()
+                        report = session.query(reports).filter_by(id=report.id).first()
+                        report.active = False
+                        report.claim_button_active = False
+                        report.resolve_button_active = False
+                        session.commit()
+                    else:
+                        raise 
             except discord.HTTPException as e:
                 print(f"Failed to load active report (ID {report.id}): {e}")
 
